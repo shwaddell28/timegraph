@@ -176,6 +176,27 @@ class TimeSync {
     return monoNow() + this.state.offsetMs
   }
 
+  /**
+   * True time for a UI event, in ms since the epoch.
+   *
+   * `event.timeStamp` is stamped by the browser when it generates the event,
+   * relative to `performance.timeOrigin` — so it predates dispatch, React's
+   * queueing, and any rendering the handler waits behind. For a measurement
+   * that is the difference between the instant the finger landed and some tens
+   * of milliseconds later.
+   *
+   * Engines have not always agreed on that origin (some older ones stamped
+   * epoch milliseconds), and a synthetic event may carry no useful stamp at
+   * all. A plausible stamp lies a few ms in the past, so anything outside that
+   * window is rejected in favour of reading the clock now.
+   */
+  atEvent(eventTimeStamp: number): number {
+    const mono = performance.timeOrigin + eventTimeStamp
+    const age = monoNow() - mono
+    if (!Number.isFinite(age) || age < -50 || age > 1000) return this.now()
+    return mono + this.state.offsetMs
+  }
+
   /** How long ago the last successful sync happened, in ms. */
   ageMs(): number {
     if (this.syncedAtMono === null) return Infinity

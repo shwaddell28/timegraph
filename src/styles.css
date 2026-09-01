@@ -407,6 +407,12 @@ button {
   min-height: 72px;
   font-size: 19px;
   border-radius: 16px;
+  /* Skip the double-tap-zoom wait, and don't let a held press start a
+     selection or callout on top of the timing gesture. */
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .tapstage__clock {

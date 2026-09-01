@@ -33,15 +33,21 @@ export default function MeasureFlow({
 
   const liveNow = useTrueNow(step === 'tap')
 
-  const tap = useCallback(() => {
-    if (sync.quality === 'unsynced') {
-      setError('Wait for the clock to sync before measuring — the reading needs a true time to compare against.')
-      return
-    }
-    setError(null)
-    setTakenAt(timeSync.now())
-    setStep('confirm')
-  }, [sync.quality])
+  const tap = useCallback(
+    (trueMs: number) => {
+      // A click synthesised after pointerdown arrives once the button has
+      // already gone; guard anyway so a keyboard press can't land twice.
+      if (step !== 'tap') return
+      if (sync.quality === 'unsynced') {
+        setError('Wait for the clock to sync before measuring — the reading needs a true time to compare against.')
+        return
+      }
+      setError(null)
+      setTakenAt(trueMs)
+      setStep('confirm')
+    },
+    [step, sync.quality],
+  )
 
   // The tap happens when the hand points at the 60-second mark, so the dial
   // reads exactly 0.000s and the tap's own true timestamp does all the work.
@@ -103,7 +109,12 @@ export default function MeasureFlow({
             <p className="tapstage__clock tabular">{formatClock(liveNow)}</p>
             <button
               className="btn btn--primary btn--block tapstage__button"
-              onClick={tap}
+              // Touch synthesises `click` from `touchend`, which would time the
+              // finger lifting rather than landing — and how long a button is
+              // held varies enough between taps to show up as scatter.
+              // `click` stays for keyboard use, where there is no pointerdown.
+              onPointerDown={(e) => tap(timeSync.atEvent(e.timeStamp))}
+              onClick={() => tap(timeSync.now())}
               disabled={sync.quality === 'unsynced'}
             >
               Tap at the 12
